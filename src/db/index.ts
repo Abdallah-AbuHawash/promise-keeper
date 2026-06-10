@@ -112,6 +112,25 @@ export function getCommitment(id: number): CommitmentRow | null {
   return (selectById.get(id) as CommitmentRow | undefined) ?? null;
 }
 
+const selectByClickupStmt = db.prepare(`SELECT * FROM commitments WHERE clickup_task_id = ?`);
+export function getCommitmentByClickupTask(taskId: string): CommitmentRow | null {
+  return (selectByClickupStmt.get(taskId) as CommitmentRow | undefined) ?? null;
+}
+
+/**
+ * Mark a tracked commitment done from an external ClickUp event. Returns true
+ * only if it actually transitioned (was not already done) — so the reverse-sync
+ * notifies exactly once and ignores the echo from our own Telegram-driven close.
+ */
+const markDoneIfOpenStmt = db.prepare(
+  `UPDATE commitments SET status = 'done', updated_at = ? WHERE clickup_task_id = ? AND status != 'done'`,
+);
+export function markDoneIfOpen(taskId: string): boolean {
+  const info = markDoneIfOpenStmt.run(now(), taskId);
+  if (info.changes > 0) audit('closed_from_clickup', null, { taskId });
+  return info.changes > 0;
+}
+
 const updateStatusStmt = db.prepare(
   `UPDATE commitments SET status = ?, updated_at = ? WHERE id = ?`,
 );

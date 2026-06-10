@@ -5,6 +5,7 @@ import { config } from './config.js';
 import { logger } from './logger.js';
 import { bot } from './telegram/bot.js';
 import { slackApp } from './slack/webhook.js';
+import { clickupApp } from './clickup/webhook.js';
 import { runSweep } from './pipeline.js';
 import { runReminders } from './jobs/reminders.js';
 import { runDigest } from './jobs/digest.js';
@@ -12,6 +13,11 @@ import { runDigest } from './jobs/digest.js';
 const app = new Hono();
 app.get('/', (c) => c.text('promise-keeper ok'));
 app.route('/slack', slackApp); // exposes POST /slack/events
+app.route('/clickup', clickupApp); // exposes POST /clickup/webhook
+
+if (!config.CLICKUP_WEBHOOK_SECRET) {
+  logger.warn('CLICKUP_WEBHOOK_SECRET is unset — ClickUp webhook signatures are not verified');
+}
 
 const server = serve({ fetch: app.fetch, port: config.PORT }, (info) => {
   logger.info(
@@ -33,6 +39,16 @@ logger.info(
   { sweep: config.SWEEP_CRON, reminders: config.REMINDER_CRON, digest: config.DIGEST_CRON },
   'cron jobs scheduled',
 );
+
+// Register the slash-command menu so Telegram shows autocomplete.
+bot.api
+  .setMyCommands([
+    { command: 'demo', description: 'See the whole flow with a sample promise' },
+    { command: 'link', description: 'Link your Slack user id to this chat' },
+    { command: 'list', description: 'Your open commitments' },
+    { command: 'help', description: 'Show help' },
+  ])
+  .catch((err) => logger.warn({ err: String(err) }, 'setMyCommands failed'));
 
 // Start the Telegram bot (long polling).
 bot

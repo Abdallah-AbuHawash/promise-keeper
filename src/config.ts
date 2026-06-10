@@ -33,6 +33,13 @@ const schema = z.object({
   // ClickUp REST API (personal token, pk_...)
   CLICKUP_TOKEN: z.string().min(1, 'CLICKUP_TOKEN is required'),
   CLICKUP_LIST_ID: z.string().min(1, 'CLICKUP_LIST_ID is required'),
+  // Secret returned when the ClickUp webhook is created; verifies inbound events.
+  CLICKUP_WEBHOOK_SECRET: z.string().default(''),
+  // When a ClickUp task is closed, also post a confirmation in the Slack thread.
+  SLACK_POST_ON_CLOSE: z
+    .string()
+    .default('true')
+    .transform((v) => v !== 'false'),
 
   // Runtime
   PORT: z.coerce.number().int().positive().default(3000),

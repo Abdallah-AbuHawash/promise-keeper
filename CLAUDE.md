@@ -12,6 +12,7 @@ Guidance for Claude Code (and other AI assistants) working in this repo.
 npm run dev        # run with tsx watch (auto-reload)
 npm start          # run once (used in the Docker image / Railway)
 npm run sweep      # run the Slack sweep one time (demo/debug)
+npm run setup:webhook -- <url>  # register the ClickUp reverse-sync webhook
 npm test           # vitest unit tests
 npm run typecheck  # tsc --noEmit
 npm run lint       # eslint
@@ -37,6 +38,7 @@ src/
   anthropic/agent.ts  Claude extraction (no MCP — see "Why REST" below)
   slack/              verify.ts (HMAC), webhook.ts (events), client.ts (Web API reads)
   clickup/client.ts   ClickUp REST v2 (create / close)
+  clickup/webhook.ts  ClickUp webhook → reverse-sync (close → Telegram + Slack)
   telegram/           bot.ts (commands + actions + /demo), cards.ts (rendering)
   jobs/               reminders.ts, digest.ts
   db/                 schema.sql + index.ts (prepared-statement repo)

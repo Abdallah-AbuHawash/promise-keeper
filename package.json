@@ -12,6 +12,7 @@
     "start": "tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
     "sweep": "tsx src/scripts/run-sweep.ts",
+    "setup:webhook": "tsx src/scripts/clickup-webhook.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",

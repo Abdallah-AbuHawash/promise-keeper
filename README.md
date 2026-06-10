@@ -77,7 +77,11 @@ Two lanes feed one pipeline:
 
 ### Why a webhook _and_ a sweep
 
-The **Events API webhook** is the push doorbell — it fires the instant someone reacts 📌, giving real‑time, intentional capture. The **hourly sweep** (Slack Web API + a per‑channel cursor) is the pull‑based safety net that catches promises nobody pinned and surfaces implied follow‑ups. Pin = high trust; sweep = best‑effort with a confidence gate.
+The **Events API webhook** is the push doorbell — it fires the instant someone reacts 📌, giving real‑time, intentional capture. The **sweep** (Slack Web API + a per‑channel cursor, every 5 min) is the pull‑based safety net that catches promises nobody pinned and surfaces implied follow‑ups. Pin = high trust; sweep = best‑effort with a confidence gate.
+
+### Reverse sync — closing the loop
+
+The flow is bidirectional. When an engineer closes the task **directly in ClickUp**, a ClickUp `taskStatusUpdated` webhook (`src/clickup/webhook.ts`) marks the commitment done, pings the engineer on Telegram, and — if `SLACK_POST_ON_CLOSE` is on — posts **“✅ Resolved: …” back into the original Slack thread**, so the customer sees it without anyone re‑typing. A `markDoneIfOpen` guard transitions each commitment exactly once, so closing from Telegram and the resulting ClickUp echo never double‑fire.
 
 ---
 
@@ -102,6 +106,7 @@ src/
     client.ts         Slack Web API: history, thread, permalink, display name
   clickup/
     client.ts         ClickUp REST API: create / close task
+    webhook.ts        ClickUp webhook receiver (reverse-sync on task close)
   telegram/
     bot.ts            grammY bot: linking, approval/reminder cards, actions
     cards.ts          message + inline-keyboard rendering
@@ -153,7 +158,17 @@ Create a bot with @BotFather, put the token in `TELEGRAM_BOT_TOKEN`. The bot use
 - Create a personal API token (ClickUp → Settings → Apps → API Token, starts with `pk_`) → `CLICKUP_TOKEN`.
 - Pick the list new tasks should land in → `CLICKUP_LIST_ID` (open the list; the id is in the URL).
 
-### 5. Run
+### 5. Reverse sync (optional)
+
+To get the ClickUp‑close → Telegram + Slack confirmation:
+
+```bash
+npm run setup:webhook -- https://<your-host>/clickup/webhook
+```
+
+It registers a `taskStatusUpdated` webhook and prints a secret → set `CLICKUP_WEBHOOK_SECRET` and redeploy. For the Slack thread reply, the token needs the `chat:write` scope (set `SLACK_POST_ON_CLOSE=false` to notify Telegram only).
+
+### 6. Run
 
 ```bash
 npm run dev      # watch mode

@@ -107,6 +107,33 @@ export async function getPermalink(channel: string, messageTs: string): Promise<
   }
 }
 
+/** Post a message (optionally as a thread reply). Requires `chat:write`. Best-effort. */
+export async function postMessage(
+  channel: string,
+  text: string,
+  threadTs?: string | null,
+): Promise<boolean> {
+  try {
+    const res = await fetch('https://slack.com/api/chat.postMessage', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${config.SLACK_BOT_TOKEN}`,
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+      body: JSON.stringify({ channel, text, ...(threadTs ? { thread_ts: threadTs } : {}) }),
+    });
+    const body = (await res.json()) as { ok: boolean; error?: string };
+    if (!body.ok) {
+      logger.warn({ error: body.error }, 'chat.postMessage failed');
+      return false;
+    }
+    return true;
+  } catch (err) {
+    logger.warn({ err: String(err) }, 'chat.postMessage threw');
+    return false;
+  }
+}
+
 export async function getDisplayName(userId: string): Promise<string | null> {
   try {
     const body = (await slackCall('users.info', { user: userId })) as {
