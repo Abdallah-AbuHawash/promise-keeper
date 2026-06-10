@@ -8,7 +8,17 @@
  */
 import { config } from '../config.js';
 
-const endpoint = process.argv[2] ?? `${config.PUBLIC_URL}/clickup/webhook`;
+// Derive the origin (scheme+host) so a PUBLIC_URL that includes a path
+// (e.g. .../slack/events) still produces the correct webhook endpoint.
+function defaultEndpoint(): string {
+  try {
+    return `${new URL(config.PUBLIC_URL).origin}/clickup/webhook`;
+  } catch {
+    return `${config.PUBLIC_URL.replace(/\/+$/, '')}/clickup/webhook`;
+  }
+}
+
+const endpoint = process.argv[2] ?? defaultEndpoint();
 
 async function cu(path: string, init?: RequestInit) {
   const res = await fetch(`https://api.clickup.com/api/v2${path}`, {
