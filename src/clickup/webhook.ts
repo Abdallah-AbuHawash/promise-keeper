@@ -47,13 +47,28 @@ clickupApp.post('/webhook', async (c) => {
   const taskId = body.task_id;
   const statusItem = body.history_items?.find((h) => h.field === 'status');
   const type = statusItem?.after?.type;
+  const status = statusItem?.after?.status;
   const isClosed = type === 'closed' || type === 'done';
 
+  logger.info(
+    { event: body.event, taskId, status, type, isClosed },
+    'clickup webhook received',
+  );
+
   // Only react to a task moving into a terminal status.
-  if (!taskId || !isClosed) return c.text('ok');
+  if (!taskId || !isClosed) {
+    logger.debug({ taskId, type }, 'clickup webhook ignored (not a terminal status)');
+    return c.text('ok');
+  }
 
   // Transition exactly once; ignores the echo from our own Telegram-driven close.
-  if (!markDoneIfOpen(taskId)) return c.text('ok');
+  if (!markDoneIfOpen(taskId)) {
+    logger.info(
+      { taskId },
+      'clickup webhook: no open tracked commitment for this task (already done, or row lost on redeploy)',
+    );
+    return c.text('ok');
+  }
 
   const row = getCommitmentByClickupTask(taskId);
   if (!row) return c.text('ok');
