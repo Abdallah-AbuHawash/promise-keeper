@@ -83,6 +83,8 @@ The **Events API webhook** is the push doorbell — it fires the instant someone
 
 The flow is bidirectional. When an engineer closes the task **directly in ClickUp**, a ClickUp `taskStatusUpdated` webhook (`src/clickup/webhook.ts`) marks the commitment done, pings the engineer on Telegram, and — if `SLACK_POST_ON_CLOSE` is on — posts **“✅ Resolved: …” back into the original Slack thread**, so the customer sees it without anyone re‑typing. A `markDoneIfOpen` guard transitions each commitment exactly once, so closing from Telegram and the resulting ClickUp echo never double‑fire.
 
+> **ClickUp delivery caveat:** ClickUp does not emit a webhook for status changes made by the **same user/token that owns the webhook** (self-event suppression). So the reverse-sync fires when a *teammate* closes the task, not when the webhook's own account does. The handler is otherwise verified end-to-end (`clickup webhook received → reverse-sync: commitment closed` in the logs). The forward path (Telegram **✔️ Done** → close in ClickUp) has no such limitation.
+
 ---
 
 ## Project layout
